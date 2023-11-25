@@ -105,13 +105,13 @@ class RequestPermissionLauncher private constructor(private val lifecycleOwner: 
         permissions.forEach {
             if (checkSelfPermission(it)) {
                 result.add(SisalPermission(it, PermissionResult.GRANTED))
-                preferences[it] = true
+                preferences[it + activity!!::class.java.simpleName] = true
             }else if (shouldShowRequestPermissionRationale(it)) {
-                preferences[it] = false
+                preferences[it + activity!!::class.java.simpleName] = false
                 result.add(SisalPermission(it, PermissionResult.DENIED))
             }
             else {
-                if (preferences[it]){
+                if (preferences[it + activity!!::class.java.simpleName]){
                     result.add(SisalPermission(it, PermissionResult.PERMANENTLY_DENIED))
                 }else
                     permissionCheck.launch( permissions.map { it }.toTypedArray())

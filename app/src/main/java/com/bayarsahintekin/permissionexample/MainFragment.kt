@@ -1,29 +1,33 @@
 package com.bayarsahintekin.permissionexample
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
 import android.widget.Button
 import androidx.appcompat.app.AlertDialog
-import androidx.appcompat.app.AppCompatActivity
-import androidx.fragment.app.FragmentTransaction
+import androidx.fragment.app.Fragment
 import com.bayarsahintekin.permission.RequestPermissionLauncher
-import com.bayarsahintekin.permissionexample.R
 
-class MainActivity : AppCompatActivity() {
-
+/**
+ * Created by sahintekin on 24.11.2023.
+ */
+class MainFragment : Fragment() {
     private val requestPermissionLauncher = RequestPermissionLauncher.from(this)
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
 
-        replaceFragment()
+    @SuppressLint("MissingInflatedId")
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View? {
+        val root = inflater.inflate(R.layout.fragment_main, container, false)
 
-        val button: Button = findViewById(R.id.button)
-        button.setOnClickListener {
-
+        root.findViewById<Button>(R.id.btnFragmentPermission).setOnClickListener {
             requestPermissionLauncher.launch(
                 arrayListOf(
                     Manifest.permission.CAMERA,
@@ -37,19 +41,20 @@ class MainActivity : AppCompatActivity() {
                 }, onPermanentlyDenied = {
                     showPermanentlyDeniedPermissionDialog(
                         title = "Permanently Denied",
-                        description = "You need to open settings and give permission to go on"
+                        description = "You need to open setttings and give permission to go on"
                     )
                 },
                 onResult = {
 
                 }
             )
-
         }
+
+        return root
     }
 
     private fun showPermissionRationaleDialog(title: String, description: String){
-        val builder: AlertDialog.Builder = AlertDialog.Builder(this)
+        val builder: AlertDialog.Builder = AlertDialog.Builder(requireContext())
         builder
             .setMessage(description)
             .setTitle(title)
@@ -65,7 +70,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showPermanentlyDeniedPermissionDialog(title: String, description: String){
-        val builder: AlertDialog.Builder = AlertDialog.Builder(this)
+        val builder: AlertDialog.Builder = AlertDialog.Builder(requireContext())
         builder
             .setMessage(description)
             .setTitle(title)
@@ -80,18 +85,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun openSettings() {
-        val packageName = packageName
+        val packageName = activity?.packageName // or replace with your target package name
+
         val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName"))
         intent.addCategory(Intent.CATEGORY_DEFAULT)
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
         startActivity(intent)
-    }
-
-    private fun replaceFragment() {
-        val fragmentTransaction: FragmentTransaction = supportFragmentManager.beginTransaction()
-        fragmentTransaction.replace(R.id.fragment_container, MainFragment())
-        fragmentTransaction.addToBackStack(null)
-        fragmentTransaction.commit()
     }
 
 }
