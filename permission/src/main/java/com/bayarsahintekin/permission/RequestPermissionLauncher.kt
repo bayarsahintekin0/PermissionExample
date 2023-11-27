@@ -15,7 +15,6 @@ import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import com.bayarsahintekin.permission.PreferencesHandler.get
 import com.bayarsahintekin.permission.PreferencesHandler.set
-import com.bayarsahintekin.permission.PreferencesHandler
 
 import java.lang.ref.WeakReference
 
@@ -24,7 +23,7 @@ class RequestPermissionLauncher private constructor(private val lifecycleOwner: 
 
     private lateinit var permissionCheck: ActivityResultLauncher<Array<String>>
     private var activity: Activity? = null
-    private var denied: List<SisalPermission> = arrayListOf()
+    private var denied: List<PermissionData> = arrayListOf()
     private lateinit var preferences: SharedPreferences
 
     init {
@@ -99,20 +98,20 @@ class RequestPermissionLauncher private constructor(private val lifecycleOwner: 
     fun launch(permissions: ArrayList<String>,
                onShowRational: () -> Unit,
                onPermanentlyDenied: () -> Unit,
-               onResult: (permissions: ArrayList<SisalPermission>) -> Unit) {
+               onResult: (permissions: ArrayList<PermissionData>) -> Unit) {
 
-        val result = arrayListOf<SisalPermission>()
+        val result = arrayListOf<PermissionData>()
         permissions.forEach {
             if (checkSelfPermission(it)) {
-                result.add(SisalPermission(it, PermissionResult.GRANTED))
+                result.add(PermissionData(it, PermissionResult.GRANTED))
                 preferences[it + activity!!::class.java.simpleName] = true
             }else if (shouldShowRequestPermissionRationale(it)) {
                 preferences[it + activity!!::class.java.simpleName] = false
-                result.add(SisalPermission(it, PermissionResult.DENIED))
+                result.add(PermissionData(it, PermissionResult.DENIED))
             }
             else {
                 if (preferences[it + activity!!::class.java.simpleName]){
-                    result.add(SisalPermission(it, PermissionResult.PERMANENTLY_DENIED))
+                    result.add(PermissionData(it, PermissionResult.PERMANENTLY_DENIED))
                 }else
                     permissionCheck.launch( permissions.map { it }.toTypedArray())
 
@@ -134,4 +133,4 @@ enum class PermissionResult {
     GRANTED, DENIED, PERMANENTLY_DENIED
 }
 
-data class SisalPermission(var permission: String, var state: PermissionResult)
+data class PermissionData(var permission: String, var state: PermissionResult)
