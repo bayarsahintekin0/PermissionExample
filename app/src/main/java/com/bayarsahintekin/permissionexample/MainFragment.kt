@@ -44,8 +44,8 @@ class MainFragment : Fragment() {
                         description = "You need to open setttings and give permission to go on"
                     )
                 },
-                onResult = {
-
+                onResult = { permissionsCurrentState ->
+                    // We can see permissions list states on each state.
                 }
             )
         }

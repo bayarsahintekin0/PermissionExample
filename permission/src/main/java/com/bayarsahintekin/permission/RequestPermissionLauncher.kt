@@ -18,6 +18,8 @@ import com.bayarsahintekin.permission.PreferencesHandler.set
 
 import java.lang.ref.WeakReference
 
+
+
 class RequestPermissionLauncher private constructor(private val lifecycleOwner: WeakReference<LifecycleOwner>) :
     DefaultLifecycleObserver, ActivityResultCallback<Map<String, Boolean>> {
 
@@ -26,11 +28,18 @@ class RequestPermissionLauncher private constructor(private val lifecycleOwner: 
     private var denied: List<PermissionData> = arrayListOf()
     private lateinit var preferences: SharedPreferences
 
+    private var activityName:String = "Unknown Activity"
+
     init {
         lifecycleOwner.get()?.lifecycle?.addObserver(this)
+        activity?.let {
+            activityName =  it::class.java.simpleName
+        }
     }
+
     companion object {
-        fun from(lifecycleOwner: LifecycleOwner) = RequestPermissionLauncher(WeakReference(lifecycleOwner))
+        fun from(lifecycleOwner: LifecycleOwner) =
+            RequestPermissionLauncher(WeakReference(lifecycleOwner))
     }
 
     override fun onCreate(owner: LifecycleOwner) {
@@ -79,10 +88,12 @@ class RequestPermissionLauncher private constructor(private val lifecycleOwner: 
     override fun onActivityResult(result: Map<String, Boolean>) {}
 
     private fun checkSelfPermission(vararg permissions: String): Boolean {
-        for (perm in permissions) if (ContextCompat.checkSelfPermission(
-                activity!!,
-                perm
-            ) != PackageManager.PERMISSION_GRANTED
+        for (perm in permissions) if (activity?.let {
+                ContextCompat.checkSelfPermission(
+                    it,
+                    perm
+                )
+            } != PackageManager.PERMISSION_GRANTED
         ) return false
         return true
     }
@@ -95,36 +106,49 @@ class RequestPermissionLauncher private constructor(private val lifecycleOwner: 
 
     fun requestPermission() = permissionCheck.launch(denied.map { it.permission }.toTypedArray())
 
-    fun launch(permissions: ArrayList<String>,
-               onShowRational: () -> Unit,
-               onPermanentlyDenied: () -> Unit,
-               onResult: (permissions: ArrayList<PermissionData>) -> Unit) {
+    fun clearAllPermanentlyDeniedData(){
+        preferences.edit().clear().apply()
+    }
+
+    fun launch(
+        permissions: ArrayList<String>,
+        onShowRational: (deniedPermissions: ArrayList<PermissionData>) -> Unit,
+        onPermanentlyDenied: (permanentlyDeniedPermissions: ArrayList<PermissionData>) -> Unit,
+        onResult: (permissions: ArrayList<PermissionData>) -> Unit
+    ) {
 
         val result = arrayListOf<PermissionData>()
         permissions.forEach {
             if (checkSelfPermission(it)) {
                 result.add(PermissionData(it, PermissionResult.GRANTED))
-                preferences[it + activity!!::class.java.simpleName] = true
-            }else if (shouldShowRequestPermissionRationale(it)) {
-                preferences[it + activity!!::class.java.simpleName] = false
+                preferences[it + activityName] = true
+            } else if (shouldShowRequestPermissionRationale(it)) {
+                preferences[it + activityName] = false
                 result.add(PermissionData(it, PermissionResult.DENIED))
-            }
-            else {
-                if (preferences[it + activity!!::class.java.simpleName]){
+            } else {
+                if (preferences[it + activityName]) {
                     result.add(PermissionData(it, PermissionResult.PERMANENTLY_DENIED))
-                }else
-                    permissionCheck.launch( permissions.map { it }.toTypedArray())
+                } else
+                    permissionCheck.launch(permissions.map { it }.toTypedArray())
 
             }
         }
 
+        // We kept denied permissions inside denied list to decide that;
+        // will we show rationale or not
         denied = result.filter { it.state == PermissionResult.DENIED }
         val permanentlyDenied = result.filter { it.state == PermissionResult.PERMANENTLY_DENIED }
 
+        // Here we check denied list is empty or not. If it's empty there is no need to show rationale
+        // else we inform user via callback
         if (denied.isNotEmpty())
-            onShowRational.invoke()
+            onShowRational.invoke(denied as ArrayList<PermissionData>)
+        //Here we check permanentlyDenied list is empty or not.
+        // If it's empty there is no need to show permanently denied dialog
+        // else we inform user via callback to show dialog
         if (permanentlyDenied.isNotEmpty())
-            onPermanentlyDenied.invoke()
+            onPermanentlyDenied.invoke(permanentlyDenied as ArrayList<PermissionData>)
+        // In every step we inform user permission states in that time.
         onResult.invoke(result)
     }
 }
