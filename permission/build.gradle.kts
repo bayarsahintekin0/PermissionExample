@@ -1,6 +1,7 @@
 plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
+    id("maven-publish")
 }
 
 android {
@@ -42,4 +43,14 @@ dependencies {
 
     //preference
     implementation ("androidx.preference:preference-ktx:1.2.1")
+}
+
+publishing {
+    publications {
+        create<MavenPublication>("maven") {
+            groupId = "com.bayarsahintekin.permission"
+            artifactId = "pms"
+            version = "1.0"
+        }
+    }
 }
